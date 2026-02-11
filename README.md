@@ -1,2 +1,2 @@
 # LearningGo
-Some small isolated Go projects so i learn how to code
+Some small isolated Go projects so I learn how to code. no AI slop.
