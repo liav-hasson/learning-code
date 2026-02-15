@@ -14,17 +14,15 @@ type Tasks struct {
 	// end_date string
 }
 
-// Import and parse tasks.json
 func getExistingTaskList() (error, *[]Tasks) {
 	content, err := os.ReadFile("tasks.json")
 	if err != nil {
 		return err, nil
 	}
 
-	// implement file parsing
+	// TODO: implement file parsing
 }
 
-// create new data structure
 func createNewTaskList() *[]Tasks {
 	return &[]Tasks{}
 }

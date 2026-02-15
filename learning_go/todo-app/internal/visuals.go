@@ -7,7 +7,3 @@ func printHeader() {
 func printHelp() {
 	println("usefull help message")
 }
-
-func printError() {
-	println("invalid argument")
-}
