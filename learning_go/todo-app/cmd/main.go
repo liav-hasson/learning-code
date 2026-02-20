@@ -1,24 +1,18 @@
-// SIMPLE TO-DO CLI APP
-
-// when running:
-// welcome message
-// your tasks (list)
-// available actions
-
-// available actions commands:
-// add - create a new task
-// edit - edit an existing task
-// delete - remove a task
-// list - lists all tasks
-
-// task structure
-// title, body, data-added, date-deadline
-
 package main
 
-import "todo-app/internal"
+import (
+	"fmt"
+	"os"
+
+	"todo-app/internal"
+
+	tea "github.com/charmbracelet/bubbletea"
+)
 
 func main() {
-	internal.InitTasks()
-	internal.StartRepl()
+	p := tea.NewProgram(internal.InitialModel())
+	if _, err := p.Run(); err != nil {
+		fmt.Printf("Alas, there's been an error: %v", err)
+		os.Exit(1)
+	}
 }
