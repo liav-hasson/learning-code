@@ -3,6 +3,8 @@ package internal
 import (
 	"log"
 
+	"github.com/charmbracelet/bubbles/textarea"
+	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 )
 
@@ -13,11 +15,14 @@ const (
 )
 
 type model struct {
-	state    uint
-	store    *Store
-	tasks    []Tasks          // items on the to-do list
-	cursor   int              // which to-do list item our cursor is pointing at
-	selected map[int]struct{} // which to-do items are selected
+	state     uint
+	store     *Store
+	currTask  Tasks
+	tasks     []Tasks          // items on the to-do list
+	cursor    int              // which to-do list item our cursor is pointing at
+	selected  map[int]struct{} // which to-do items are selected
+	textarea  textarea.Model
+	textinput textinput.Model
 }
 
 func NewModel(store *Store) model {
@@ -34,7 +39,9 @@ func NewModel(store *Store) model {
 		// A map which indicates which tasks are selected. We're using
 		// the  map like a mathematical set. The keys refer to the indexes
 		// of the `tasks` slice, above.
-		selected: make(map[int]struct{}),
+		selected:  make(map[int]struct{}),
+		textarea:  textarea.New(),
+		textinput: textinput.New(),
 	}
 }
 

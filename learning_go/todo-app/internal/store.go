@@ -2,7 +2,6 @@ package internal
 
 import (
 	"database/sql"
-	"time"
 
 	// We use the underscore import because we only need the side effects (driver registration)
 	_ "github.com/mattn/go-sqlite3"
@@ -12,8 +11,7 @@ type Tasks struct {
 	ID        int64
 	Title     string
 	Body      string
-	StartTime time.Time
-	EndTime   time.Time
+	StartTime string
 }
 
 type Store struct {
@@ -33,8 +31,7 @@ func (s *Store) Init() error {
 		id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
 		title TEXT NOT NULL,
 		body TEXT,
-		startTime TEXT NOT NULL, 
-		endTime TEXT
+		startTime TEXT NOT NULL
 	);`
 
 	if _, err = s.conn.Exec(createTableStmt); err != nil {
@@ -56,7 +53,9 @@ func (s *Store) GetTodoList() ([]Tasks, error) {
 
 	for rows.Next() {
 		var task Tasks
-		rows.Scan(&task.ID, &task.Title, &task.Body, &task.StartTime, &task.EndTime)
+		if err := rows.Scan(&task.ID, &task.Title, &task.Body, &task.StartTime); err != nil {
+			return nil, err
+		}
 		tasks = append(tasks, task)
 	}
 
@@ -67,16 +66,18 @@ func (s *Store) GetTodoList() ([]Tasks, error) {
 func (s *Store) SaveTask(task Tasks) error {
 	// if the task is new, auto increment id
 	if task.ID == 0 {
-		insertQuery := `INSERT INTO todo (title, body, startTime, endTime) VALUES (?, ?, ?, ?, ?)`
-		_, err := s.conn.Exec(insertQuery, task.Title, task.Body, task.StartTime, task.EndTime)
+		insertQuery := `INSERT INTO todo (title, body, startTime) VALUES (?, ?, ?)`
+		_, err := s.conn.Exec(insertQuery, task.Title, task.Body, task.StartTime)
 		if err != nil {
 			return err
 		}
+		// make sure we dont fall through to the update
+		return nil
 	}
 
 	// task id must already exists, therefore modify by passing the task id
-	updateQuery := `UPDATE todo SET title = ?, body = ?, startTime = ?, endTime = ? WHERE id = ?`
-	_, err := s.conn.Exec(updateQuery, task.Title, task.Body, task.StartTime, task.EndTime, task.ID)
+	updateQuery := `UPDATE todo SET title = ?, body = ?, startTime = ? WHERE id = ?`
+	_, err := s.conn.Exec(updateQuery, task.Title, task.Body, task.StartTime, task.ID)
 	if err != nil {
 		return err
 	}

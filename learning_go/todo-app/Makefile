@@ -3,14 +3,14 @@ BINARY_NAME=todo
 # go can handle linux forward slash on windows
 CMD_DIR=./cmd
 
-# Add Go to PATH for MSYS2/Git Bash where it's not in PATH by default
-export PATH := /c/Program Files/Go/bin:$(PATH)
+# Add Go and GCC (MSYS2 UCRT64) to PATH for MSYS2/Git Bash
+export PATH := /c/Program Files/Go/bin:/c/msys64/ucrt64/bin:$(PATH)
 
 .PHONY: windows linux run clean
 
 # Build for Windows (adds .exe automatically)
 windows:
-	GOOS=windows GOARCH=amd64 go build -o $(BINARY_NAME).exe $(CMD_DIR)
+	CGO_ENABLED=1 GOOS=windows GOARCH=amd64 go build -o $(BINARY_NAME).exe $(CMD_DIR)
 	@echo "Created Windows executable!"
 
 linux:

@@ -1,8 +1,24 @@
 package internal
 
-import tea "github.com/charmbracelet/bubbletea"
+import (
+	"time"
+
+	tea "github.com/charmbracelet/bubbletea"
+)
+
+// a random date, go only cares about the format
+const timeFormat = "Jan 02, 2006 15:04"
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	var (
+		cmds []tea.Cmd
+		cmd  tea.Cmd
+	)
+	m.textarea, cmd = m.textarea.Update(msg)
+	cmds = append(cmds, cmd)
+	m.textinput, cmd = m.textinput.Update(msg)
+	cmds = append(cmds, cmd)
+
 	switch msg := msg.(type) {
 
 	// if detected a key press
@@ -38,20 +54,106 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			// delete marked tasks
 			case "backspace", "d":
+				if len(m.selected) > 0 {
+					var toDelete []Tasks
+					for idx := range m.selected {
+						toDelete = append(toDelete, m.tasks[idx])
+					}
+
+					if err := m.store.DeleteTask(toDelete); err != nil {
+						return m, tea.Quit
+					}
+
+					var err error
+					m.tasks, err = m.store.GetTodoList()
+					if err != nil {
+						return m, tea.Quit
+					}
+
+					// reset selections and clamp cursor
+					m.selected = make(map[int]struct{})
+					if m.cursor >= len(m.tasks) && len(m.tasks) > 0 {
+						m.cursor = len(m.tasks) - 1
+					} else if len(m.tasks) == 0 {
+						m.cursor = 0
+					}
+				}
 
 			// editing an existing task switches the body view
 			case "e":
+				// handle edit attempt when no tasks exist
+				if len(m.tasks) == 0 {
+					break
+				}
+				m.currTask = m.tasks[m.cursor]
+				m.textarea.SetValue(m.currTask.Body)
+				m.textarea.Focus()
+				m.textarea.CursorEnd()
+				m.state = bodyView
 
 			// creating a new task switches to the title view
 			case "n":
+				m.textinput.SetValue("")
+				m.textinput.Focus()
+				m.textinput.CursorEnd()
+				m.currTask = Tasks{}
 				m.state = titleView
 			}
+		
+		case titleView:
+			switch key {
+			case "enter":
+				title := m.textinput.Value()
+				if title != "" {
+					m.currTask.Title = title
 
-			// case titleView:
-			// case bodyView:
+					m.textarea.SetValue("")
+					m.textarea.Focus()
+					m.textarea.CursorEnd()
+
+					m.state = bodyView
+				}
+
+			case "esc":
+				m.state = listView
+			}
+
+		case bodyView:
+			switch key {
+			case "ctrl+s":
+				body := m.textarea.Value()
+				m.currTask.Body = body
+
+				// set start time for new tasks
+				if m.currTask.ID == 0 {
+					m.currTask.StartTime = time.Now().Format(timeFormat)
+				}
+
+				// save task to db
+				var err error
+				if err = m.store.SaveTask(m.currTask); err != nil {
+					// TODO handle errors here
+					return m, tea.Quit
+				}
+
+				m.tasks, err = m.store.GetTodoList()
+				if err != nil {
+					// TODO handle errors here
+					return m, tea.Quit
+				}
+
+				// reset the current task
+				m.currTask = Tasks{}
+
+				// go back to the list view
+				m.state = listView
+
+			case "esc":
+				// exit to list view
+				m.state = listView
+			}	
 		}
 	}
-	// Return the updated model to the Bubble Tea runtime for processing.
-	// Note that we're not returning a command.
-	return m, nil
+
+	return m, tea.Batch(cmds...)
 }
