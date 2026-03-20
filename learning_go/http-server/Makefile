@@ -1,4 +1,4 @@
-BINARY_NAME=httpserver
+BINARY_NAME=http-server
 
 # go can handle linux forward slash on windows
 CMD_DIR=./cmd
